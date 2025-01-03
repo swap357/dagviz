@@ -169,15 +169,6 @@ def convert_onnx_model_to_graph(model_path):
                 'fontsize': '10'
             }
             
-            if name in [i.name for i in model.graph.input]:
-                style['fillcolor'] = '#e8f5e9'  # Green for inputs
-            elif name in [o.name for o in model.graph.output]:
-                style['fillcolor'] = '#ffebee'  # Red for outputs
-            elif name in [i.name for i in model.graph.initializer]:
-                style['fillcolor'] = '#fff3e0'  # Orange for initializers
-            else:
-                style['fillcolor'] = '#f3e5f5'  # Default purple for tensors
-            
             # Clean and escape the name
             clean_label = clean_name(name)
             escaped_name = escape_name(name)
@@ -202,12 +193,12 @@ def convert_onnx_model_to_graph(model_path):
                 else:
                     op_type = f"{op.domain}::{op_type}"
             
-            # Clean and escape names
+            # Clean names and create node ID
             clean_type = clean_name(op_type)
-            escaped_name = escape_name(node_name)
+            current_op = escape_name(node_name)
             label = f"{clean_type}\\n(#{op_id})"
 
-            dot.node(escaped_name, 
+            dot.node(current_op, 
                     label,
                     attrs={
                         'shape': 'box',
@@ -221,12 +212,12 @@ def convert_onnx_model_to_graph(model_path):
 
             # Add edges
             edge_style = {'penwidth': '0.5', 'arrowsize': '0.5'}
-            for inode in op.input:
-                draw_io(inode)
-                dot.edge(escape_name(inode), escaped_name, attrs=edge_style)
-            for onode in op.output:
-                draw_io(onode)
-                dot.edge(escaped_name, escape_name(onode), attrs=edge_style)
+            for input_node in op.input:
+                draw_io(input_node)
+                dot.edge(escape_name(input_node), current_op, attrs=edge_style)
+            for output_node in op.output:
+                draw_io(output_node)
+                dot.edge(current_op, escape_name(output_node), attrs=edge_style)
 
     # Draw the graph
     draw()
