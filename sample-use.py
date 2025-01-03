@@ -127,8 +127,8 @@ def convert_onnx_model_to_graph(model_path):
     model = onnx.shape_inference.infer_shapes(model)
 
     # Create a new directed graph
-    dot = Digraph('ONNX Model Graph', 
-                  graph_attrs={'rankdir': 'TB', 'splines': 'ortho'})
+    G = Digraph('ONNX Model Graph', 
+                graph_attrs={'rankdir': 'TB', 'splines': 'ortho'})
 
     # Track shapes
     shape_info = {}
@@ -168,16 +168,16 @@ def convert_onnx_model_to_graph(model_path):
                 'fixedsize': 'true',
                 'fontsize': '10'
             }
-            
+   
             # Clean and escape the name
             clean_label = clean_name(name)
             escaped_name = escape_name(name)
             shape = format_shape(shape_info.get(name, "?"))
-            
+
             # Add node with shape info
-            dot.node(escaped_name, 
-                    f"{clean_label}\\n{shape}", 
-                    attrs=style)
+            G.node(escaped_name, 
+                  f"{clean_label}\\n{shape}", 
+                  attrs=style)
             drawn.add(name)
 
     def draw():
@@ -198,30 +198,30 @@ def convert_onnx_model_to_graph(model_path):
             current_op = escape_name(node_name)
             label = f"{clean_type}\\n(#{op_id})"
 
-            dot.node(current_op, 
-                    label,
-                    attrs={
-                        'shape': 'box',
-                        'style': 'filled',
-                        'fillcolor': '#e1f5fe',
-                        'margin': '0.3',
-                        'width': '1.2',
-                        'height': '0.6',
-                        'fixedsize': 'true'
-                    })
+            G.node(current_op, 
+                  label,
+                  attrs={
+                      'shape': 'box',
+                      'style': 'filled',
+                      'fillcolor': '#e1f5fe',
+                      'margin': '0.3',
+                      'width': '1.2',
+                      'height': '0.6',
+                      'fixedsize': 'true'
+                  })
 
             # Add edges
             edge_style = {'penwidth': '0.5', 'arrowsize': '0.5'}
             for input_node in op.input:
                 draw_io(input_node)
-                dot.edge(escape_name(input_node), current_op, attrs=edge_style)
+                G.edge(escape_name(input_node), current_op, attrs=edge_style)
             for output_node in op.output:
                 draw_io(output_node)
-                dot.edge(current_op, escape_name(output_node), attrs=edge_style)
+                G.edge(current_op, escape_name(output_node), attrs=edge_style)
 
     # Draw the graph
     draw()
-    return dot
+    return G
 
 if __name__ == "__main__":
     import sys
@@ -229,8 +229,8 @@ if __name__ == "__main__":
     model_path = sys.argv[1] if len(sys.argv) > 1 else './Llama-3.2-1B-Instruct/onnx/model.onnx'
     print(f"Processing model: {model_path}")
     
-    graph = convert_onnx_model_to_graph(model_path)
-    if graph:
+    G = convert_onnx_model_to_graph(model_path)
+    if G:
         print("Rendering graph...")
-        graph.render('onnx_model_graph.html')
-        graph.view() 
+        G.render('onnx_model_graph.html')
+        G.view() 
