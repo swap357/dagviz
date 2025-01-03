@@ -9,8 +9,11 @@ from dagviz import Digraph
 G = Digraph(name="My Graph", 
             graph_attrs={'rankdir': 'TB'})
 
-# Add nodes and edges
+# Add nodes
 G.node('A', 'Node A')
+G.node('B', 'Node B')
+
+# Add edge between nodes
 G.edge('A', 'B')
 
 # Render the graph
