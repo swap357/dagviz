@@ -57,6 +57,37 @@ _TEMPLATE = '''
         .node.tensor rect {{
             fill: #f3e5f5;
         }}
+        .node.highlight rect, .node.highlight circle, .node.highlight ellipse {{
+            stroke: #4CAF50;
+            stroke-width: 3px;
+        }}
+        .edgePath.highlight path.path {{
+            stroke: #4CAF50;
+            stroke-width: 2.5px;
+        }}
+        .node.highlight-parent rect, .node.highlight-parent circle, .node.highlight-parent ellipse {{
+            stroke: #FFA000;  /* Amber 700 */
+            stroke-width: 3px;
+            fill: #FFE082;    /* Amber 200 */
+        }}
+        .node.highlight-self rect, .node.highlight-self circle, .node.highlight-self ellipse {{
+            stroke: #1976D2;  /* Blue 700 */
+            stroke-width: 3px;
+            fill: #90CAF9;    /* Blue 200 */
+        }}
+        .node.highlight-child rect, .node.highlight-child circle, .node.highlight-child ellipse {{
+            stroke: #388E3C;  /* Green 700 */
+            stroke-width: 3px;
+            fill: #A5D6A7;    /* Green 200 */
+        }}
+        .edgePath.highlight-parent path.path {{
+            stroke: #FFA000;  /* Amber 700 */
+            stroke-width: 2.5px;
+        }}
+        .edgePath.highlight-child path.path {{
+            stroke: #388E3C;  /* Green 700 */
+            stroke-width: 2.5px;
+        }}
     </style>
 </head>
 <body>
@@ -125,6 +156,81 @@ _TEMPLATE = '''
 
             // Run the renderer
             render(inner, g);
+
+            // Add click and hover state management
+            let activeNode = null;
+
+            // Function to clear all highlights
+            function clearHighlights() {{
+                inner.selectAll(".highlight-parent").classed("highlight-parent", false);
+                inner.selectAll(".highlight-self").classed("highlight-self", false);
+                inner.selectAll(".highlight-child").classed("highlight-child", false);
+            }}
+
+            // Function to highlight node and its connections
+            function highlightNode(node, v) {{
+                clearHighlights();
+                
+                // Highlight the current node
+                node.classed("highlight-self", true);
+                
+                // Find and highlight parent nodes and edges
+                g.inEdges(v).forEach(e => {{
+                    const edgeId = `${{e.v}}-${{e.w}}`;
+                    inner.select(`g.edgePath[data-edge-id="${{edgeId}}"]`).classed("highlight-parent", true);
+                    inner.select(`g.node[data-node-id="${{e.v}}"]`).classed("highlight-parent", true);
+                }});
+
+                // Find and highlight child nodes and edges
+                g.outEdges(v).forEach(e => {{
+                    const edgeId = `${{e.v}}-${{e.w}}`;
+                    inner.select(`g.edgePath[data-edge-id="${{edgeId}}"]`).classed("highlight-child", true);
+                    inner.select(`g.node[data-node-id="${{e.w}}"]`).classed("highlight-child", true);
+                }});
+            }}
+
+            // Add click handler to SVG for clearing highlights when clicking outside
+            svg.on("click", function(event) {{
+                if (event.target.tagName === "svg") {{
+                    clearHighlights();
+                    activeNode = null;
+                }}
+            }});
+
+            // Add node interactions
+            inner.selectAll("g.node")
+                .on("click", function(evt, v) {{
+                    evt.stopPropagation();  // Prevent SVG click from triggering
+                    const node = d3.select(this);
+                    
+                    if (activeNode === v) {{
+                        // If clicking the same node, clear highlights
+                        clearHighlights();
+                        activeNode = null;
+                    }} else {{
+                        // Highlight new node
+                        highlightNode(node, v);
+                        activeNode = v;
+                    }}
+                }})
+                .on("mouseover", function(evt, v) {{
+                    // Only show hover effects if no node is currently active
+                    if (!activeNode) {{
+                        highlightNode(d3.select(this), v);
+                    }}
+                }})
+                .on("mouseout", function() {{
+                    // Only clear highlights if no node is currently active
+                    if (!activeNode) {{
+                        clearHighlights();
+                    }}
+                }});
+
+            // Add data attributes to nodes and edges for selection
+            inner.selectAll("g.node")
+                .attr("data-node-id", d => d);
+            inner.selectAll("g.edgePath")
+                .attr("data-edge-id", d => `${{d.v}}-${{d.w}}`);
 
             // Center the graph
             const graphBounds = g.graph();
